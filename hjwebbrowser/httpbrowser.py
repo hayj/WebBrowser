@@ -10,8 +10,8 @@ from systemtools.location import *
 from systemtools.logger import *
 import requests.auth
 from datastructuretools.hashmap import *
-from webbrowser.utils import *
-from webbrowser.browser import *
+from hjwebbrowser.utils import *
+from hjwebbrowser.browser import *
 try:
     from newstools.newsscraper import *
 except: pass
