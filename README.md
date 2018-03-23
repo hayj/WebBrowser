@@ -27,7 +27,7 @@ Features:
 You can set the driver and headless or not (don't forgot to install driver and set the PATH env):
 
 	from webbrowser.browser import *
-	b = Browser(driverType=DRIVER_TYPE.chrome) # or DRIVER_TYPE.phantomjs
+	b = Browser(driverType=DRIVER_TYPE.chrome, headless=False) # or DRIVER_TYPE.phantomjs
 
 You can then call `html` method to get data:
 
@@ -54,10 +54,6 @@ You can set a proxy:
 
 	b = Browser(proxy={"ip": "xxx.xxx.xxx.xxx", "port": "22", "user": None, "password": None})
 
-You can use Chrome as headless:
-
-	b = Browser(headless=True, driverType=DRIVER_TYPE.chrome)
-
 You can set a callback if you work with threads:
 
 	b = Browser(htmlCallback=myHtmlCallbackFunct)
@@ -66,27 +62,27 @@ In this case you have to call the `get` method (see the class doc for more infor
 
 	isOk = b.get("http://...")
 
-You can set a ajax sleep to wait a little bit when the page is loaded, and set a page load timeout and choose to load image or not:
+You can set a ajax sleep to wait a little bit when the page is loaded, you also can set a page load timeout and choose to load image or not:
 
 	b = Browser(ajaxSleep=3.0, pageLoadTimeout=60, loadImages=False)
 
-Set the maxDuplicatePerDomain from DomainDuplicate:
+Set the maxDuplicatePerDomain from `DomainDuplicate`:
 
 	b = Browser(maxDuplicatePerDomain=5)
 
 Performance notes:
 
  * Chrome is slower than phantomjs when using a lot in parallel
- * Phantomjs is more often detected by servers, and now is deprecated in Selenium
+ * Phantomjs is more often detected by servers, and now its usage in Selenium is deprecated but still works
 
 ## HTTPBrowser
 
-This tool is not a wrapper over a real browser (Selenium) but over request. It works the same way but also return a `httpStatus`.
+This tool is not a wrapper over a real browser (from Selenium) but over requests lib. It works the same way but also return a `httpStatus`.
 
 You can give retry counts : `maxRetryWithoutProxy`, `maxRetryIfTimeout`, `maxRetryIf407`.
-You can set different port for you proxy through portSet.
+You can set different port for you proxy through `portSet`.
 
-Contrary to `Browser`, the `get` method return data. `html` is an alias. But you can give a `htmlCallback` too.
+Contrary to `Browser`, the `get` method return data. `html` is an alias to `get`. But you can give a `htmlCallback` too.
 
 ## Proxies
 
