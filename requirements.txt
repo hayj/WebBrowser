@@ -1,0 +1,8 @@
+selenium
+sh
+ipgetter
+psutil
+hjsystemtools
+html2text
+requests
+beautifulsoup4
