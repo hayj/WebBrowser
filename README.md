@@ -22,6 +22,7 @@ Features:
  * It retains proxy performance in b.durationHistory
  * Prevent infinite get using selenium
  * Considers an ajax sleep as not being a bottleneck, but the get itself
+ * It can detect 404 errors with Selenium (which doesn't provide this information). [Coming soon].
 
 You can set the driver and headless or not (don't forgot to install driver and set the PATH env):
 
@@ -93,7 +94,7 @@ The proxy object must be a dict `{"ip": "xxx.xxx.xxx.xxx", "port": "22", "user":
 
 ## Error 404 detection for `Browser`
 
-This feature is currently not functional. It will be updated soon.
+This feature is currently not functional. It will be updated soon. So consider error404 as a success status for now.
 
 ## Phantomjs deprecation
 
