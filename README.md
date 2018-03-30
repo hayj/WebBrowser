@@ -99,7 +99,7 @@ If phantomjs doesn't works, you can go back to `selenium==3.8.0` and `phantomjs=
 ## Tor
 
 A Tor service works as a proxy on 127.0.0.1 and a specific port.
-This class allow an easy multi To service init, it will onl take available ports on your machine.
+This class allow an easy multi Tor service initialization, it will only take available ports on your machine.
 
 Requirements:
 
@@ -109,7 +109,7 @@ Usage:
 
 	from hjwebbrowser.tor import *
 	tor = Tor(portCount=100) # To have 100 differents ips
-	proxy = tor.getRandomProxy() # Get a random proxy to use in requests or Selenium for example
+	proxy = tor.getRandomProxy() # Get a random proxy to use in HTTPBrowser, requests or Selenium for example
 	tor.restart() # Get new ips
 
 
