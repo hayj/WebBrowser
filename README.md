@@ -2,11 +2,12 @@
 
 This tool is a wrapper over `selenium` and `requests`. It allow an easy use of phantomjs and Chrome (headless or not) through Selenium. It handle selenium instability by killing dead process. You can set proxy and it will automatically applied it (through plugin with Chrome to handle user/password...). It use [DomainDuplicate](https://github.com/hayj/DomainDuplicate) lib to control web pages content. Each requests return normalized content over all drivers. It will randomly select a header (and seed it by proxy ip).
 
+You also can manage multiple Tor services using `hjwebbrowser.tor.Tor` which automatically init Tor services on available locals ports on your machine.
+
 ## Installation
 
 	git clone git@github.com:hayj/WebBrowser.git
 	pip install ./WebBrowser/wm-dist/*.tar.gz
-
 
 ## Browser
 
@@ -24,7 +25,7 @@ Features:
  * Considers an ajax sleep as not being a bottleneck, but the get itself
  * It can detect 404 errors with Selenium (which doesn't provide this information). [Coming soon].
 
-You can set the driver and headless or not (don't forgot to install driver and set the PATH env):
+You can set the driver and headless or not (don't forgot to install driver and set the PATH var env):
 
 	from hjwebbrowser.browser import *
 	b = Browser(driverType=DRIVER_TYPE.chrome, headless=False) # or DRIVER_TYPE.phantomjs
@@ -88,7 +89,7 @@ Contrary to `Browser`, the `get` method return data. `html` is an alias to `get`
 
 ## Tor
 
-A Tor service works as a proxy on 127.0.0.1 and a specific port.
+A Tor service works as a proxy on `127.0.0.1` and a specific port.
 This class allow an easy multi Tor service initialization, it will only take available ports on your machine.
 
 Requirements:
@@ -98,13 +99,18 @@ Requirements:
 Usage:
 
 	from hjwebbrowser.tor import *
-	tor = Tor(portCount=100) # To have 100 differents ips
-	proxy = tor.getRandomProxy() # Get a random proxy to use in HTTPBrowser, requests or Selenium for example
-	tor.restart() # Refresh Tor services to get news ips
+	# To have 100 differents ips:
+	tor = Tor(portCount=100
+	# Alternatively you can get the tor singleton:
+	tor = getTorSingleton()
+	# Get a random proxy to use in HTTPBrowser, requests or Selenium for example:
+	proxy = tor.getRandomProxy()
+	# Refresh Tor services to get news ips:
+	tor.restart()
 
 ## Proxies
 
-The proxy object must be a dict `{"ip": "xxx.xxx.xxx.xxx", "port": "22", "user": None, "password": None}`
+A proxy object in this project is a dict `{"ip": "xxx.xxx.xxx.xxx", "port": "22", "user": None, "password": None}`
 
 ## Error 404 detection for `Browser`
 
