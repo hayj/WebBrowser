@@ -6,3 +6,4 @@ hjsystemtools
 html2text
 requests
 beautifulsoup4
+requests[socks]

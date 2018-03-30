@@ -3,8 +3,6 @@
 from systemtools.basics import *
 from datatools.json import *
 from datatools.url import *
-from machinelearning.bandit import *
-from machinelearning.function import *
 from datatools.csvreader import *
 from systemtools.basics import *
 from systemtools.file import *
@@ -201,7 +199,7 @@ def getRandomProxy(proxiesPath=None):
     allProxies = getProxies(proxiesPath)
     return random.choice(allProxies)
 
-def getProxies(proxiesPath=None, removeFailedProxies=True):
+def getProxies(proxiesPath=None, removeFailedProxies=True, defaultType="http"):
     proxiesPath = getProxiesPath(proxiesPath)
     # If the file exist, we parse it, one proxie by line (165.231.108.5:80:user:pass)
     if fileExists(proxiesPath):
@@ -216,7 +214,7 @@ def getProxies(proxiesPath=None, removeFailedProxies=True):
                     theDict["port"] = theTuple[1]
                     theDict["user"] = theTuple[2]
                     theDict["password"] = theTuple[3]
-                    theDict["type"] = "http"
+                    theDict["type"] = defaultType
                     proxies.append(theDict)
             except Exception as e:
                 pass

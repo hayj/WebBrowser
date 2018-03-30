@@ -26,7 +26,7 @@ Features:
 
 You can set the driver and headless or not (don't forgot to install driver and set the PATH env):
 
-	from webbrowser.browser import *
+	from hjwebbrowser.browser import *
 	b = Browser(driverType=DRIVER_TYPE.chrome, headless=False) # or DRIVER_TYPE.phantomjs
 
 You can then call `html` method to get data:
@@ -45,7 +45,7 @@ data is a dict:
 	    "lastUrlDomain": <The domain name of the last url>,
 	    "html": "<html>...",
 	    "title": "The title",
-	    "status": <a status from webbrowser.browser.REQUEST_STATUS>,
+	    "status": <a status from hjwebbrowser.browser.REQUEST_STATUS>,
 	}
 
 You can see all status in `webbrowser.browser.REQUEST_STATUS`.
@@ -95,4 +95,21 @@ This feature is currently not functional. It will be updated soon. So consider e
 ## Phantomjs deprecation
 
 If phantomjs doesn't works, you can go back to `selenium==3.8.0` and `phantomjs==2.1.1`
+
+## Tor
+
+A Tor service works as a proxy on 127.0.0.1 and a specific port.
+This class allow an easy multi To service init, it will onl take available ports on your machine.
+
+Requirements:
+
+	sudo apt-get install tor
+
+Usage:
+
+	from hjwebbrowser.tor import *
+	tor = Tor(portCount=100) # To have 100 differents ips
+	proxy = tor.getRandomProxy() # Get a random proxy to use in requests or Selenium for example
+	tor.restart() # Get new ips
+
 

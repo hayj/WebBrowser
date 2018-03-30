@@ -2,3 +2,4 @@ DataTools
 SystemTools/hjsystemtools
 DataStructureTools
 DomainDuplicate
+Error404Detector

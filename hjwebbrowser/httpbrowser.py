@@ -12,6 +12,7 @@ import requests.auth
 from datastructuretools.hashmap import *
 from hjwebbrowser.utils import *
 from hjwebbrowser.browser import *
+from hjwebbrowser.tor import *
 try:
     from newstools.newsscraper import *
 except: pass
@@ -45,9 +46,11 @@ class HTTPBrowser():
         logger=None,
         verbose=True,
         proxy=None,
+        noRetry=False,
         maxRetryWithoutProxy=0,
         maxRetryIfTimeout=1,
         maxRetryIf407=1,
+        maxRetryWithTor=1,
         portSet=["80", "55555"],
         retrySleep=1.0,
         defaultScore=None,
@@ -58,6 +61,13 @@ class HTTPBrowser():
         durationHistoryCount=60,
         durationHistory=None,
     ):
+        # We set all retries:
+        if noRetry:
+            maxRetryWithoutProxy = 0
+            maxRetryIfTimeout = 0
+            maxRetryIf407 = 0
+            maxRetryWithTor = 0
+
         self.maxDuplicatePerDomain = maxDuplicatePerDomain
         HTTPBrowser.duplicates.setMaxDuplicates(self.maxDuplicatePerDomain)
         self.name = name
@@ -79,6 +89,7 @@ class HTTPBrowser():
         self.maxRetryWithoutProxy = maxRetryWithoutProxy
         self.maxRetryIfTimeout = maxRetryIfTimeout
         self.maxRetryIf407 = maxRetryIf407
+        self.maxRetryWithTor = maxRetryWithTor
         self.logger = logger
         self.verbose = verbose
         self.setProxy(proxy)
@@ -142,7 +153,6 @@ class HTTPBrowser():
     def setProxy(self, proxy):
         self.proxy = proxy
         self.proxyStr = None
-        self.proxyIpStr = None
         if self.proxy is not None and isinstance(proxy, str):
             self.proxy = proxyStrToProxyDict(self.proxy)
         # We add the current port to port set:
@@ -162,18 +172,19 @@ class HTTPBrowser():
     def html(self, *args, **kwargs):
         return self.get(*args, **kwargs)
     def get(self, *args, **kwargs):
+        self.countRetryWithTor = 0
         self.countRetryWithoutProxy = 0
         self.countRetryIfTimeout = 0
         self.countRetryIf407 = 0
         return self.privateGet(*args, **kwargs)
 
-    def privateGet(self, crawlingElement, forcedPort=None, noProxy=False, isARetry=False, **kwargs):
+    def privateGet(self, crawlingElement, forcedPort=None, noProxy=False, isARetry=False, useTor=False, **kwargs):
         """
             This function return data, it call htmlCallbcak if given at __init__
         """
         # This function return the result and call the htmlCallback too:
         def returner(result):
-            if self.htmlCallback is not None:
+            if self.htmlCallback is not None and not isARetry:
                 try:
                     self.htmlCallback(result, self)
                 except Exception as e:
@@ -192,15 +203,24 @@ class HTTPBrowser():
         domain = HTTPBrowser.urlParser.getDomain(url, urlLevel=URLLEVEL.SMART)
         # We set the proxy string:
         if self.hasProxy() and not noProxy:
-            self.proxyIpStr = self.proxy["ip"]
-            self.proxyStr = "http://" + self.proxy["ip"] + ":" + forcedPort
+            if useTor:
+                proxy = getTorSingleton().getRandomProxy()
+                logWarning("We retry with Tor for " + url, self)
+            else:
+                proxy = self.proxy
+            proxyIpStr = proxy["ip"] + ":" + proxy["port"]
+            theType = "http"
+            if "type" in proxy:
+                theType = proxy["type"]
+            # socks5://user:pass@host:port
+            proxyStr = theType + "://" + proxy["ip"] + ":" + forcedPort
         else:
-            self.proxyIpStr = None
-            self.proxyStr = None
+            proxyIpStr = None
+            proxyStr = None
         # We prepare the result:
         result = \
         {
-            "proxy": self.proxyIpStr,
+            "proxy": proxyIpStr,
             "lastUrl": None,
             "crawlingElement": crawlingElement,
             "url": url,
@@ -221,14 +241,14 @@ class HTTPBrowser():
         # And we launch the request:
         response = None
         try:
-            if self.hasProxy():
+            if not noProxy and (self.hasProxy() or useTor):
                 response = requests.get \
                 (
                     url,
                     proxies= \
                     {
-                        "http": self.proxyStr,
-                        "https": self.proxyStr,
+                        "http": proxyStr,
+                        "https": proxyStr,
                     },
                     timeout=self.pageLoadTimeout,
                     headers=self.header,
@@ -268,38 +288,51 @@ class HTTPBrowser():
             elif is407:
                 errorMessage = "Enable to connect to the proxy for " + url + " " + e
             else:
+                logException(ex, self, location="privateGet")
                 errorMessage = "Getting " + url + " error. " + e
             logError(errorMessage, self)
             # Now we check if we have to retry the request:
             hasToRetry = False
             noProxy = not self.hasProxy()
+            useTor = False
             # Now we retry if we have a timeout:
             if isTimeout:
                 if self.countRetryIfTimeout < self.maxRetryIfTimeout:
                     self.countRetryIfTimeout += 1
                     hasToRetry = True
                     noProxy = False
-                    logError("The request to " + url + " failed. We retry on an other proxy port.")
+                    logError("The request to " + url + " failed. We retry on an other proxy port.", self)
             # If we have a 407 we retry:
             elif is407:
                 if self.countRetryIf407 < self.maxRetryIf407:
                     self.countRetryIf407 += 1
                     hasToRetry = True
                     noProxy = False
-                    logError("The proxy connexion failed (" + self.proxyStr + "). We retry on an other proxy port.")
+                    logError("The proxy connexion failed (" + self.proxyStr + "). We retry on an other proxy port.", self)
             # Else we retry:
             else:
-                if self.countRetryWithoutProxy < self.maxRetryWithoutProxy:
-                    self.countRetryIf407 += 1
+                if self.countRetryWithTor < self.maxRetryWithTor:
+                    self.countRetryWithTor += 1
+                    hasToRetry = True
+                    noProxy = True
+                    useTor = True
+                elif self.countRetryWithoutProxy < self.maxRetryWithoutProxy:
+                    self.countRetryWithoutProxy += 1
                     hasToRetry = True
                     noProxy = True
             # And finally we retry:
             if hasToRetry:
                 randomSleep(self.retrySleep)
-                result = self.privateGet(url, forcedPort=forcedPort, noProxy=noProxy, isARetry=True)
+                result = self.privateGet(url,
+                                         forcedPort=forcedPort,
+                                         noProxy=noProxy,
+                                         isARetry=True,
+                                         useTor=useTor)
                 # We add the score to the history if this is not a retry:
                 if not isARetry:
                     self.durationHistory.append(diffTime)
+#                 if not "crawlingElement" in result:
+#                     print("WTFFFFFFFF4")
                 return returner(result)
             else:
                 # Here we didn't get the data, we return an error:
@@ -327,6 +360,8 @@ class HTTPBrowser():
                 # We add the score to the history if this is not a retry:
                 if not isARetry:
                     self.durationHistory.append(diffTime)
+#                 if not "crawlingElement" in result:
+#                     print("WTFFFFFFFF3")
                 return returner(result)
         try:
             # We add the score to the history:
@@ -346,7 +381,8 @@ class HTTPBrowser():
             result["lastUrlDomain"] = HTTPBrowser.urlParser.getDomain(response.url, urlLevel=URLLEVEL.SMART)
             result["html"] = response.text
             result["title"] = htmlTitle(response.text)
-            # Next we compute the status of the response
+            # Next we compute the status of the response,
+            # this order is very important:
             if response.status_code == 404: # or response.status_code == 403
                 result["status"] = REQUEST_STATUS.error404
             elif isRefused(response.text, response.url):
@@ -360,6 +396,8 @@ class HTTPBrowser():
             else:
                 result["status"] = REQUEST_STATUS.success
             # And finally we return the result:
+#             if not "crawlingElement" in result:
+#                 print("WTFFFFFFFF2")
             return returner(result)
         except Exception as e:
             # If we can't acces to attribute, we just send the result with status exception:
@@ -367,12 +405,17 @@ class HTTPBrowser():
             logError(errorMessage + " " + str(e), self)
             result["message"] = errorMessage
             result["status"] = REQUEST_STATUS.exception
+#             if not "crawlingElement" in result:
+#                 print("WTFFFFFFFF1")
             return returner(result)
 
     def printStatusMessage(self, result):
         message = ""
         message += str(result["status"].name) + " (" + str(result["httpStatus"]) + ")"
-        message += " from " + self.name + " (" + self.proxy["ip"] + ")"
+        if self.proxy is not None and dictContains(self.proxy, "ip"):
+            message += " from " + self.name + " (" + self.proxy["ip"] + ")"
+        else:
+            message += " from " + self.name
         message += " " + result["url"]
         log(message, self)
 
@@ -384,7 +427,7 @@ class HTTPBrowser():
         logError("checkProxy not yet implemented!")
         return True
 
-if __name__ == '__main__':
+def test1():
     urls = \
     [
         "http://bit.ly/2AGvbIz",
@@ -469,6 +512,9 @@ if __name__ == '__main__':
 
         # TODO test sur datas
 
+
+if __name__ == '__main__':
+    pass
 
 
 
