@@ -100,7 +100,7 @@ Usage:
 	from hjwebbrowser.tor import *
 	tor = Tor(portCount=100) # To have 100 differents ips
 	proxy = tor.getRandomProxy() # Get a random proxy to use in HTTPBrowser, requests or Selenium for example
-	tor.restart() # Get new ips
+	tor.restart() # Refresh Tor services to get news ips
 
 ## Proxies
 
