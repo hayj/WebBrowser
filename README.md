@@ -48,7 +48,7 @@ data is a dict:
 	    "status": <a status from hjwebbrowser.browser.REQUEST_STATUS>,
 	}
 
-You can see all status in `webbrowser.browser.REQUEST_STATUS`.
+You can see all status in `hjwebbrowser.browser.REQUEST_STATUS`.
 
 You can set a proxy:
 
