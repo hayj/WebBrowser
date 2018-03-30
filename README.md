@@ -77,24 +77,14 @@ Performance notes:
 
 ## HTTPBrowser
 
-This tool is not a wrapper over a real browser (from Selenium) but over requests lib. It works the same way but also return a `httpStatus`.
+This tool is not a wrapper over a real browser (from Selenium) but over requests lib. It works the same as Browser but also return a `httpStatus`.
+
+	from hjwebbrowser.httpbrowser import *
 
 You can give retry counts : `maxRetryWithoutProxy`, `maxRetryIfTimeout`, `maxRetryIf407`.
 You can set different port for you proxy through `portSet`.
 
 Contrary to `Browser`, the `get` method return data. `html` is an alias to `get`. But you can give a `htmlCallback` too.
-
-## Proxies
-
-The proxy object must be a dict `{"ip": "xxx.xxx.xxx.xxx", "port": "22", "user": None, "password": None}`
-
-## Error 404 detection for `Browser`
-
-This feature is currently not functional. It will be updated soon. So consider error404 as a success status for now.
-
-## Phantomjs deprecation
-
-If phantomjs doesn't works, you can go back to `selenium==3.8.0` and `phantomjs==2.1.1`
 
 ## Tor
 
@@ -111,5 +101,19 @@ Usage:
 	tor = Tor(portCount=100) # To have 100 differents ips
 	proxy = tor.getRandomProxy() # Get a random proxy to use in HTTPBrowser, requests or Selenium for example
 	tor.restart() # Get new ips
+
+## Proxies
+
+The proxy object must be a dict `{"ip": "xxx.xxx.xxx.xxx", "port": "22", "user": None, "password": None}`
+
+## Error 404 detection for `Browser`
+
+This feature is currently not functional. It will be updated soon. So consider error404 as a success status for now.
+
+## Phantomjs deprecation
+
+If phantomjs doesn't works, you can go back to `selenium==3.8.0` and `phantomjs==2.1.1`
+
+
 
 
