@@ -100,8 +100,8 @@ Usage:
 
 	from hjwebbrowser.tor import *
 	# To have 100 differents ips:
-	tor = Tor(portCount=100
-	# Alternatively you can get the tor singleton:
+	tor = Tor(portCount=100)
+	# Alternatively you can get the tor singleton (and give same args as the Tor class):
 	tor = getTorSingleton()
 	# Get a random proxy to use in HTTPBrowser, requests or Selenium for example:
 	proxy = tor.getRandomProxy()
