@@ -6,7 +6,7 @@ You also can manage multiple Tor services using `hjwebbrowser.tor.Tor` which aut
 
 ## Installation
 
-	git clone git@github.com:hayj/WebBrowser.git
+	git clone https://github.com/hayj/WebBrowser.git
 	pip install ./WebBrowser/wm-dist/*.tar.gz
 
 ## Browser

@@ -66,6 +66,12 @@ REQUEST_STATUS = Enum("REQUEST_STATUS", "success error404 timeout timeoutWithCon
 
 DRIVER_TYPE = Enum("DRIVER_TYPE", "chrome phantomjs")
 
+browserDuplicates = None
+def getBrowserDomainDuplicateSingleton(*args, **kwargs):
+    global browserDuplicates
+    if browserDuplicates is None:
+        browserDuplicates = DomainDuplicate(*args, **kwargs)
+    return browserDuplicates
 
 class Browser():
     """
@@ -135,9 +141,6 @@ class Browser():
         ]
     }
 
-    duplicates = DomainDuplicate()
-
-
 
     def __init__(
                     self,
@@ -162,20 +165,28 @@ class Browser():
                     headless=False,
                     useFastError404Detection=False,
                     durationHistory=None,
+                    domainDuplicateParams={},
                 ):
-        self.urlParser = URLParser()
+        self.logger = logger
+        self.verbose = verbose
+
+        if "logger" not in domainDuplicateParams:
+            domainDuplicateParams["logger"] = self.logger
+        if "verbose" not in domainDuplicateParams:
+            domainDuplicateParams["verbose"] = self.verbose
+
+        self.urlParser = URLParser(logger=self.logger, verbose=self.verbose)
         self.useFastError404Detection = useFastError404Detection
         self.useTimeoutGet = useTimeoutGet
         self.lastIsDuplicate = False
         self.maxDuplicatePerDomain = maxDuplicatePerDomain
-        Browser.duplicates.setMaxDuplicates(self.maxDuplicatePerDomain)
+        self.duplicates = getBrowserDomainDuplicateSingleton(**domainDuplicateParams)
+        self.duplicates.setMaxDuplicates(self.maxDuplicatePerDomain)
         self.beforeAjaxSleepCallback = beforeAjaxSleepCallback
         self.afterAjaxSleepCallback = afterAjaxSleepCallback
         self.name = name
         if self.name is None:
             self.name = getRandomName()
-        self.verbose = verbose
-        self.logger = logger
         self.pageLoadTimeout = pageLoadTimeout
         self.defaultScore = defaultScore
         if self.defaultScore is None:
@@ -466,7 +477,7 @@ class Browser():
             self.lastIsDuplicate = False
             if title is not None and html is not None \
             and crawlingElement.type == CrawlingElement.TYPE.uniqueUrl:
-                self.lastIsDuplicate = Browser.duplicates.isDuplicate \
+                self.lastIsDuplicate = self.duplicates.isDuplicate \
                 (
                     crawlingElement.data,
                     title,
@@ -615,7 +626,7 @@ class Browser():
         elif is404Error(html, fast=self.useFastError404Detection):
             return REQUEST_STATUS.error404
         elif crawlingElement.type == CrawlingElement.TYPE.uniqueUrl \
-        and Browser.duplicates.isDuplicate(lastUrl, title, html):
+        and self.duplicates.isDuplicate(lastUrl, title, html):
             return REQUEST_STATUS.duplicate
         else:
             return REQUEST_STATUS.success

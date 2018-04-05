@@ -37,8 +37,14 @@ def htmlTitle(html):
         title = strip(title.string)
     return title
 
+httpBrowserDuplicates = None
+def getHTTPBrowserDomainDuplicateSingleton(*args, **kwargs):
+    global httpBrowserDuplicates
+    if httpBrowserDuplicates is None:
+        httpBrowserDuplicates = DomainDuplicate(*args, **kwargs)
+    return httpBrowserDuplicates
+
 class HTTPBrowser():
-    duplicates = DomainDuplicate()
     urlParser = URLParser()
     def __init__ \
     (
@@ -60,7 +66,16 @@ class HTTPBrowser():
         maxDuplicatePerDomain=20,
         durationHistoryCount=60,
         durationHistory=None,
+        domainDuplicateParams={},
     ):
+        self.logger = logger
+        self.verbose = verbose
+
+        if "logger" not in domainDuplicateParams:
+            domainDuplicateParams["logger"] = self.logger
+        if "verbose" not in domainDuplicateParams:
+            domainDuplicateParams["verbose"] = self.verbose
+
         # We set all retries:
         if noRetry:
             maxRetryWithoutProxy = 0
@@ -69,7 +84,8 @@ class HTTPBrowser():
             maxRetryWithTor = 0
 
         self.maxDuplicatePerDomain = maxDuplicatePerDomain
-        HTTPBrowser.duplicates.setMaxDuplicates(self.maxDuplicatePerDomain)
+        self.duplicates = getHTTPBrowserDomainDuplicateSingleton(**domainDuplicateParams)
+        self.duplicates.setMaxDuplicates(self.maxDuplicatePerDomain)
         self.name = name
         self.driver = None
         if self.name is None:
@@ -90,8 +106,6 @@ class HTTPBrowser():
         self.maxRetryIfTimeout = maxRetryIfTimeout
         self.maxRetryIf407 = maxRetryIf407
         self.maxRetryWithTor = maxRetryWithTor
-        self.logger = logger
-        self.verbose = verbose
         self.setProxy(proxy)
         self.initHeader()
 
@@ -308,7 +322,7 @@ class HTTPBrowser():
                     self.countRetryIf407 += 1
                     hasToRetry = True
                     noProxy = False
-                    logError("The proxy connexion failed (" + self.proxyStr + "). We retry on an other proxy port.", self)
+                    logError("The proxy connexion failed (" + str(proxyStr) + "). We retry on an other proxy port.", self)
             # Else we retry:
             else:
                 if self.countRetryWithTor < self.maxRetryWithTor:
@@ -391,7 +405,7 @@ class HTTPBrowser():
                 result["status"] = REQUEST_STATUS.invalid
             elif not (response.status_code >= 200 and response.status_code <= 226):
                 result["status"] = REQUEST_STATUS.refused
-            elif HTTPBrowser.duplicates.isDuplicate(url=result["lastUrl"], html=result["html"]):
+            elif self.duplicates.isDuplicate(url=result["lastUrl"], html=result["html"]):
                 result["status"] = REQUEST_STATUS.duplicate
             else:
                 result["status"] = REQUEST_STATUS.success
