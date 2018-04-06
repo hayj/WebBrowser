@@ -35,23 +35,6 @@ from collections import OrderedDict
 import psutil
 
 
-# sometime phantomjs driver block on a self.driver.get(url) even a timeout was set, for exemple these urls :
-# ["http://nypost.com/2017/10/07/inside-the-mean-girls-culture-that-destroyed-sex-and-the-city/", "http://abcnews.go.com/Entertainment/wireStory/resignations-fallout-grow-embattled-producer-weinstein-50351532"]
-# When you use phantomjs on these urls, the get take an infinite time, so a memory heap in the crawler
-# And when we use a python thread timeout on the get, we can't quit() the driver...
-# And we can't kill the browser in command line because we don't know which phantomjs it is...
-# DONE DONE DONE DONE DONE DONE DONE DONE !!!!!!!!! with pid and threaded timeouts
-
-# TODO chrome header (user agent done, but other header element can't be set)
-
-# TODO phantomjs is easily detected by google and others... why ?
-# phantomjs is slow and less reliable but take less proc
-
-# TODO Chrome probleme : too much proc...
-
-# Par contre pour la détection de phantomjs par google aucune idée de comment ils font, je sais juste que c'est pas le header, c'est pas les proxies, c'est pas un comportement non humain puisqu'il y a juste une requête, ça doit être qqch de plus basique comme une option genre ne pas charger les image ou le cache qqch comme ça.
-
-
 def queueMean(queue, defaultValue=0.0):
     if queue is None:
         return defaultValue
