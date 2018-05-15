@@ -163,5 +163,5 @@ class Tor:
 
 
 if __name__ == '__main__':
-    Tor(portCount=100).stop()
+    Tor(portCount=1)#.stop()
 

@@ -118,7 +118,7 @@ This feature is currently not functional. It will be updated soon. So consider e
 
 ## Phantomjs deprecation
 
-If phantomjs doesn't works, you can go back to `selenium==3.8.0` and `phantomjs==2.1.1`
+If phantomjs doesn't work, you can go back to `selenium==3.8.0` and `phantomjs==2.1.1`
 
 
 

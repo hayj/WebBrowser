@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from systemtools.basics import *
-from datatools.json import *
+from datatools.jsonreader import *
 from datatools.url import *
 from datatools.csvreader import *
 from systemtools.basics import *
@@ -232,6 +232,25 @@ def testIsHtmlOK():
         text = fileToStr(currentPath)
         print(isHtmlOk(text))
 
+def proxyToDict(proxyStr, defaultType="http"):
+    theDict = {}
+    theTuple = proxyStr.split(":")
+    theDict["ip"] = theTuple[0]
+    theDict["port"] = theTuple[1]
+    theDict["user"] = None
+    theDict["password"] = None
+    if len(theTuple) > 2:
+        theDict["user"] = theTuple[2]
+        theDict["password"] = theTuple[3]
+    theDict["type"] = defaultType
+    return theDict
+
+def proxyToStr(proxyDict):
+    user = ""
+    if dictContains(proxyDict, "user"):
+        user += ":" + proxyDict["user"] + ":" + proxyDict["password"]
+    proxyStr = proxyDict["ip"] + ":" + proxyDict["port"] + user
+    return proxyStr
 
 def getProxiesProd():
     return getProxies(dataDir() + proxiesDataSubDir + "/proxies-prod.txt")

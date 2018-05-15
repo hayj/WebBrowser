@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from datatools.json import *
+from datatools.jsonreader import *
 from datatools.url import *
 from machinelearning.bandit import *
 from machinelearning.function import *
@@ -146,12 +146,18 @@ class Browser():
                     ajaxSleep=1.0, # > 3.0 for production crawl task
                     useTimeoutGet=True, # Use False here, True is not yet well implemented
                     headless=False,
-                    useFastError404Detection=False,
+                    useFastError404Detection=True,
                     durationHistory=None,
                     domainDuplicateParams={},
+                    isInvalidFunct=None,
+                    incognito=False,
+                    disableNotifications=False,
                 ):
         self.logger = logger
         self.verbose = verbose
+
+        self.incognito = incognito
+        self.disableNotifications = disableNotifications
 
         if "logger" not in domainDuplicateParams:
             domainDuplicateParams["logger"] = self.logger
@@ -177,6 +183,7 @@ class Browser():
         self.checkProxyTimeout = checkProxyTimeout
         self.ajaxSleep = ajaxSleep
         self.htmlCallback = htmlCallback
+        self.isInvalidFunct = isInvalidFunct
         self.lastGetIsOk = None
         self.crawlingElement = None
         self.durationHistoryCount = durationHistoryCount
@@ -326,8 +333,11 @@ class Browser():
 
     def generateRandomWindow(self):
         if self.driver is not None:
-            (width, height) = self.randomWindow()
-            self.driver.set_window_size(width, height)
+            try:
+                (width, height) = self.randomWindow()
+                self.driver.set_window_size(width, height)
+            except Exception as e:
+                logException(e, self, location="generateRandomWindow")
 
     def getScrapedHeader(self):
         headerSources = \
@@ -462,7 +472,7 @@ class Browser():
             and crawlingElement.type == CrawlingElement.TYPE.uniqueUrl:
                 self.lastIsDuplicate = self.duplicates.isDuplicate \
                 (
-                    crawlingElement.data,
+                    lastUrl,
                     title,
                     html
                 )
@@ -611,6 +621,8 @@ class Browser():
         elif crawlingElement.type == CrawlingElement.TYPE.uniqueUrl \
         and self.duplicates.isDuplicate(lastUrl, title, html):
             return REQUEST_STATUS.duplicate
+        elif self.isInvalidFunct is not None and self.isInvalidFunct(lastUrl, html, self):
+            return REQUEST_STATUS.invalid
         else:
             return REQUEST_STATUS.success
 
@@ -785,14 +797,19 @@ class Browser():
     def getPhantomJSServiceArgs(self):
         if self.proxy is None:
             return None
+        type = "http"
+        if dictContains(self.proxy, "type"):
+            type = self.proxy["type"]
         params = \
         [
             '--proxy=' + self.proxy["ip"] + ':' + self.proxy["port"],
-            '--proxy-type=http',
-            '--proxy-auth=' + self.proxy["user"] + ':' + self.proxy["password"],
-            '--load-images=no',
+            '--proxy-type=' + type,
         ]
-        if not self.loadImages:
+        if dictContains(self.proxy, "user"):
+            params.append('--proxy-auth=' + self.proxy["user"] + ':' + self.proxy["password"])
+        if self.loadImages:
+            params.append('--load-images=yes')
+        else:
             params.append('--load-images=no')
         return params
 
@@ -803,6 +820,14 @@ class Browser():
         """
         options = Options()
         if self.proxy is not None and not self.headless:
+            user = "null"
+            password = "null"
+            if dictContains(self.proxy, "user"):
+                user = self.proxy["user"]
+            if dictContains(self.proxy, "password"):
+                password = self.proxy["password"]
+            user = '"' + user + '"'
+            password = '"' + password + '"'
             manifest_json = """
             {
                 "version": "1.0.0",
@@ -842,8 +867,8 @@ class Browser():
             function callbackFn(details) {
                 return {
                     authCredentials: {
-                        username: \"""" + self.proxy["user"] + """\",
-                        password: \"""" + self.proxy["password"] + """\"
+                        username: """ + user + """,
+                        password: """ + password + """
                     }
                 };
             }
@@ -870,6 +895,11 @@ class Browser():
             options.add_argument('--proxy-server=' + self.proxy["ip"] + ":" + self.proxy["port"])
 
         options.add_argument("--start-maximized")
+
+        if self.incognito:
+            options.add_argument('--incognito')
+        if self.disableNotifications:
+            options.add_argument("--disable-notifications")
 
         if self.headless:
             options.add_argument('headless')
