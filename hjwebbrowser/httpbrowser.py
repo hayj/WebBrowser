@@ -17,6 +17,7 @@ try:
     from newstools.newsscraper import *
 except: pass
 from bs4 import BeautifulSoup
+from threading import Thread, Lock, Semaphore, active_count, BoundedSemaphore
 
 def proxyStrToProxyDict(proxyStr):
     theTuple = proxies[i].split(":")
@@ -68,6 +69,7 @@ class HTTPBrowser():
         durationHistory=None,
         domainDuplicateParams={},
         isInvalidFunct=None,
+        useTimeoutGet=True,
     ):
         self.logger = logger
         self.verbose = verbose
@@ -84,6 +86,10 @@ class HTTPBrowser():
             maxRetryIf407 = 0
             maxRetryWithTor = 0
 
+        self.timeoutGetLock = Lock()
+        self.currentRequestResponse = None
+        self.currentRequestException = None
+        self.useTimeoutGet = useTimeoutGet
         self.isInvalidFunct = isInvalidFunct
         self.maxDuplicatePerDomain = maxDuplicatePerDomain
         self.duplicates = getHTTPBrowserDomainDuplicateSingleton(**domainDuplicateParams)
@@ -194,6 +200,32 @@ class HTTPBrowser():
         self.countRetryIf407 = 0
         return self.privateGet(*args, **kwargs)
 
+    def timeoutGet(self, *args, **kwargs):
+        """
+            Because sometimes requests does not respond and blocks the httpbrowser,
+            we use a thread timeout...
+        """
+        with self.timeoutGetLock:
+            self.currentRequestResponse = None
+            self.currentRequestException = None
+            if self.useTimeoutGet:
+                def threadedGet(*args, **kwargs):
+                    try:
+                        self.currentRequestResponse = requests.get(*args, **kwargs)
+                    except Exception as e:
+                        self.currentRequestException = e
+                theThread = Thread(target=threadedGet, args=args, kwargs=kwargs)
+                theThread.start()
+                theThread.join(1.3 * self.pageLoadTimeout)
+                if theThread.isAlive():
+                    raise requests.exceptions.Timeout("The thread does not end.")
+                elif self.currentRequestException is not None:
+                    raise self.currentRequestException
+                elif self.currentRequestResponse is not None:
+                    return self.currentRequestResponse
+            else:
+                return requests.get(*args, **kwargs)
+
     def privateGet(self, crawlingElement, forcedPort=None, noProxy=False, isARetry=False, useTor=False, **kwargs):
         """
             This function return data, it call htmlCallbcak if given at __init__
@@ -263,7 +295,7 @@ class HTTPBrowser():
         response = None
         try:
             if not noProxy and (self.hasProxy() or useTor):
-                response = requests.get \
+                response = self.timeoutGet \
                 (
                     url,
                     proxies= \
@@ -276,7 +308,7 @@ class HTTPBrowser():
 #                     cookies={'preview': '1'},
                 )
             else:
-                response = requests.get(url, timeout=self.pageLoadTimeout, headers=self.header,)
+                response = self.timeoutGet(url, timeout=self.pageLoadTimeout, headers=self.header,)
             # Now we retain the diff time:
             diffTime = tt.tic(display=False)
         # Now if we got an error:
@@ -537,7 +569,7 @@ def test1():
 if __name__ == '__main__':
     from hjwebbrowser import config as wbConf
     wbConf.torPortCount = 5
-    b = HTTPBrowser(proxy=getRandomProxy())
+    b = HTTPBrowser(proxy=getRandomProxy(), pageLoadTimeout=3)
     print(b.get("https://api.ipify.org?format=json")["html"])
 
 
