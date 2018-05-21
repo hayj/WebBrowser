@@ -218,13 +218,18 @@ class HTTPBrowser():
         url = HTTPBrowser.urlParser.normalize(url)
         domain = HTTPBrowser.urlParser.getDomain(url, urlLevel=URLLEVEL.SMART)
         # We set the proxy string:
-        if self.hasProxy() and not noProxy:
-            if useTor:
-                proxy = getTorSingleton().getRandomProxy()
-                logWarning("We retry with Tor for " + url, self)
-            else:
-                proxy = self.proxy
+        if useTor:
+            proxy = getTorSingleton().getRandomProxy()
+            logWarning("We retry with Tor for " + url, self)
             proxyIpStr = proxy["ip"] + ":" + proxy["port"]
+            theType = "http"
+            if "type" in proxy:
+                theType = proxy["type"]
+            # socks5://user:pass@host:port
+            proxyStr = theType + "://" + proxy["ip"] + ":" + proxy["port"]
+        elif self.hasProxy() and not noProxy:
+            proxy = self.proxy
+            proxyIpStr = proxy["ip"] + ":" + forcedPort
             theType = "http"
             if "type" in proxy:
                 theType = proxy["type"]
@@ -530,7 +535,10 @@ def test1():
 
 
 if __name__ == '__main__':
-    pass
+    from hjwebbrowser import config as wbConf
+    wbConf.torPortCount = 5
+    b = HTTPBrowser(proxy=getRandomProxy())
+    print(b.get("https://api.ipify.org?format=json")["html"])
 
 
 

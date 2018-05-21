@@ -33,6 +33,7 @@ from selenium.webdriver.chrome.options import Options
 import zipfile
 from collections import OrderedDict
 import psutil
+from hjwebbrowser import config as wbConf
 
 
 def queueMean(queue, defaultValue=0.0):
@@ -152,6 +153,7 @@ class Browser():
                     isInvalidFunct=None,
                     incognito=False,
                     disableNotifications=False,
+                    noSandbox=None, # Default from the config
                 ):
         self.logger = logger
         self.verbose = verbose
@@ -163,6 +165,10 @@ class Browser():
             domainDuplicateParams["logger"] = self.logger
         if "verbose" not in domainDuplicateParams:
             domainDuplicateParams["verbose"] = self.verbose
+
+        self.noSandbox = noSandbox
+        if self.noSandbox is None:
+            self.noSandbox = wbConf.noSandbox
 
         self.urlParser = URLParser(logger=self.logger, verbose=self.verbose)
         self.useFastError404Detection = useFastError404Detection
@@ -554,7 +560,7 @@ class Browser():
             return True
         except Exception as e:
 #             logException(e, self, location="Browser.stopLoading()")
-            logError("Exception caught in Browser.stopLoading().", self)
+            logError("Exception caught in Browser.stopLoading() " + str(e), self)
             return False
 
     def doAjaxSleep(self):
@@ -900,6 +906,9 @@ class Browser():
             options.add_argument('--incognito')
         if self.disableNotifications:
             options.add_argument("--disable-notifications")
+        if self.noSandbox:
+            logWarning("The --no-sandbox option is set in Chrome driver.")
+            options.add_argument('--no-sandbox')
 
         if self.headless:
             options.add_argument('headless')
@@ -986,7 +995,13 @@ class Browser():
 
 
 if __name__ == "__main__":
-    print("a")
+    from unshortener import config as unsConf
+    unsConf.useMongodb = False
+    from domainduplicate import config as ddConf
+    ddConf.useMongodb = False
+    from datastructuretools import config as dsConf
+    dsConf.useMongodb = False
+    b = Browser()
 
 
 

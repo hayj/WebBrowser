@@ -10,6 +10,7 @@ from datastructuretools.hashmap import *
 import socks
 import socket
 import sh
+from hjwebbrowser import config as wbConf
 
 def torSingletonExists():
     global torSingleton
@@ -32,7 +33,7 @@ class Tor:
         A proxie is a dict with "ip", "port", "type"
         Or you can call restart which will refresh ips.
     """
-    def __init__(self, ports=None, portCount=100, startPort=1000,
+    def __init__(self, ports=None, portCount=None, startPort=1000,
                  logger=None, verbose=True, resetSleepTime=0.3,
                  initSleepTime=0.5, initSleepTimeFactor=0.3, autoPorts=True):
         self.initSleepTimeFactor = initSleepTimeFactor
@@ -48,6 +49,8 @@ class Tor:
         if self.ports is not None:
             self.autoPorts = False
         self.portCount = portCount
+        if self.portCount is None:
+            self.portCount = wbConf.torPortCount
         self.startPort = startPort
         self.initPorts()
         self.confDir = tmpDir(subDir="tor/conf")
