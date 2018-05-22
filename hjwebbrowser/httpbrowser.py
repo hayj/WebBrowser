@@ -205,26 +205,31 @@ class HTTPBrowser():
             Because sometimes requests does not respond and blocks the httpbrowser,
             we use a thread timeout...
         """
-        with self.timeoutGetLock:
-            self.currentRequestResponse = None
-            self.currentRequestException = None
-            if self.useTimeoutGet:
-                def threadedGet(*args, **kwargs):
-                    try:
-                        self.currentRequestResponse = requests.get(*args, **kwargs)
-                    except Exception as e:
-                        self.currentRequestException = e
-                theThread = Thread(target=threadedGet, args=args, kwargs=kwargs)
-                theThread.start()
-                theThread.join(1.3 * self.pageLoadTimeout)
-                if theThread.isAlive():
-                    raise requests.exceptions.Timeout("The thread does not end.")
-                elif self.currentRequestException is not None:
-                    raise self.currentRequestException
-                elif self.currentRequestResponse is not None:
-                    return self.currentRequestResponse
-            else:
-                return requests.get(*args, **kwargs)
+#         with self.timeoutGetLock:
+        self.currentRequestResponse = None
+        self.currentRequestException = None
+        if self.useTimeoutGet:
+            def threadedGet(*args, **kwargs):
+                try:
+                    self.currentRequestResponse = requests.get(*args, **kwargs)
+                except Exception as e:
+                    self.currentRequestException = e
+            theThread = Thread(target=threadedGet, args=args, kwargs=kwargs)
+            a = str(getRandomInt(100))
+#             log(self.name + ": " + "starting request " + a, self)
+            theThread.start()
+            theThread.join(1.3 * self.pageLoadTimeout)
+#             log(self.name + ": " + "end of request " + a, self)
+            if theThread.isAlive():
+#                 try: theThread.exit()
+#                 except: pass
+                raise requests.exceptions.Timeout("The thread does not end.")
+            elif self.currentRequestException is not None:
+                raise self.currentRequestException
+            elif self.currentRequestResponse is not None:
+                return self.currentRequestResponse
+        else:
+            return requests.get(*args, **kwargs)
 
     def privateGet(self, crawlingElement, forcedPort=None, noProxy=False, isARetry=False, useTor=False, **kwargs):
         """
