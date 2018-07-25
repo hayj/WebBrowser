@@ -107,10 +107,20 @@ Usage:
 	proxy = tor.getRandomProxy()
 	# Refresh Tor services to get news ips:
 	tor.restart()
+	# Stop all tor instances:
+	tor.stop()
+
+If you don't stop Tor properly (for example because you use it through `WebCrawler`), you have to kill all tor instances on your OS, for example using [killbill](https://github.com/hayj/Bash/blob/master/killbill.sh):
+
+	killbill torrc
 
 ## Proxies
 
-A proxy object in this project is a dict `{"ip": "xxx.xxx.xxx.xxx", "port": "22", "user": None, "password": None}`
+A proxy is a class which can be use as a dict : `{"ip": "xxx.xxx.xxx.xxx", "port": "80", "user": None, "password": None, "type": "http"}`
+
+Usage:
+
+	>>> p = Proxy("xxx.xxx.xxx.xxx:8080:user:password")
 
 ## Error 404 detection for `Browser`
 

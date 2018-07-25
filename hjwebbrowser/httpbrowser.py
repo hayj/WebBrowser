@@ -19,18 +19,6 @@ except: pass
 from bs4 import BeautifulSoup
 from threading import Thread, Lock, Semaphore, active_count, BoundedSemaphore
 
-def proxyStrToProxyDict(proxyStr):
-    theTuple = proxies[i].split(":")
-    theDict = {}
-    theDict["ip"] = theTuple[0]
-    theDict["port"] = theTuple[1]
-    if len(theTuple) > 2:
-        theDict["user"] = theTuple[2]
-    if len(theTuple) > 3:
-        theDict["password"] = theTuple[3]
-    theDict["type"] = "http"
-    return theDict
-
 def htmlTitle(html):
     soup = BeautifulSoup(html, "html.parser")
     title = soup.title
@@ -176,7 +164,7 @@ class HTTPBrowser():
         self.proxy = proxy
         self.proxyStr = None
         if self.proxy is not None and isinstance(proxy, str):
-            self.proxy = proxyStrToProxyDict(self.proxy)
+            self.proxy = Proxy(self.proxy)
         # We add the current port to port set:
         if self.hasProxy():
             self.portSet.append(self.proxy["port"])
@@ -271,7 +259,10 @@ class HTTPBrowser():
             if "type" in proxy:
                 theType = proxy["type"]
             # socks5://user:pass@host:port
-            proxyStr = theType + "://" + proxy["ip"] + ":" + forcedPort
+            if "user" in proxy:
+                proxyStr = theType + "://" + proxy.user + ":" + proxy.password + "@" + proxy["ip"] + ":" + forcedPort
+            else:
+                proxyStr = theType + "://" + proxy["ip"] + ":" + forcedPort
         else:
             proxyIpStr = None
             proxyStr = None
@@ -574,8 +565,10 @@ def test1():
 if __name__ == '__main__':
     from hjwebbrowser import config as wbConf
     wbConf.torPortCount = 5
-    b = HTTPBrowser(proxy=getRandomProxy(), pageLoadTimeout=3)
-    print(b.get("https://api.ipify.org?format=json")["html"])
+    proxies = getProxiesRenew()[0:20]
+    b = HTTPBrowser(proxy=random.choice(proxies), pageLoadTimeout=3, maxRetryWithTor=0)
+#     print(b.get("https://api.ipify.org?format=json")["html"])
+    print(b.get("https://fr.wikipedia.org/wiki/Vauxhall_Bridge")["html"])
 
 
 

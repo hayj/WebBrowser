@@ -154,6 +154,7 @@ class Browser():
                     incognito=False,
                     disableNotifications=False,
                     noSandbox=None, # Default from the config
+                    disableDevShmUsage=False, # Default from the config
                 ):
         self.logger = logger
         self.verbose = verbose
@@ -167,6 +168,7 @@ class Browser():
             domainDuplicateParams["verbose"] = self.verbose
 
         self.noSandbox = noSandbox
+        self.disableDevShmUsage = disableDevShmUsage
         if self.noSandbox is None:
             self.noSandbox = wbConf.noSandbox
 
@@ -909,6 +911,9 @@ class Browser():
         if self.noSandbox:
             logWarning("The --no-sandbox option is set in Chrome driver.")
             options.add_argument('--no-sandbox')
+        if self.disableDevShmUsage:
+            logWarning("The --disable-dev-shm-usage option is set in Chrome driver.")
+            options.add_argument('--disable-dev-shm-usage')
 
         if self.headless:
             options.add_argument('headless')

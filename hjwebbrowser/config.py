@@ -1,2 +1,2 @@
 noSandbox = False
-torPortCount = 100
+torPortCount = 10

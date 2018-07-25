@@ -21,6 +21,7 @@ import math
 import numpy
 from enum import Enum
 from error404detector.detector import *
+from hjwebbrowser.proxy import *
 
 def tryUrlToCrawlingElement(url):
     if isinstance(url, str):
@@ -183,48 +184,11 @@ def is404ErrorFastFunct(html, debug=False):
     return False
 
 
-proxiesDataSubDir = "/Misc/crawling/proxies"
 
-def getProxiesPath(proxiesPath=None):
-    if proxiesPath is not None:
-        return proxiesPath
-    else:
-        return dataDir() + proxiesDataSubDir + "/proxies-renew.txt"
-
+def getIp(*args, **kwargs):
+    return getIP(*args, **kwargs)
 def getIP():
     return ipgetter.myip()
-
-def getRandomProxy(proxiesPath=None):
-    proxiesPath = getProxiesPath(proxiesPath)
-    allProxies = getProxies(proxiesPath)
-    return random.choice(allProxies)
-
-def getProxies(proxiesPath=None, removeFailedProxies=True, defaultType="http"):
-    proxiesPath = getProxiesPath(proxiesPath)
-    # If the file exist, we parse it, one proxie by line (165.231.108.5:80:user:pass)
-    if fileExists(proxiesPath):
-        proxies = []
-        proxiesTextList = fileToStrList(proxiesPath)
-        for current in proxiesTextList:
-            try:
-                if current.strip() != "":
-                    theTuple = current.split(":")
-                    theDict = {}
-                    theDict["ip"] = theTuple[0]
-                    theDict["port"] = theTuple[1]
-                    theDict["user"] = theTuple[2]
-                    theDict["password"] = theTuple[3]
-                    theDict["type"] = defaultType
-                    proxies.append(theDict)
-            except Exception as e:
-                pass
-        if removeFailedProxies:
-            failedPath = dataDir() + proxiesDataSubDir + "/proxies-failed.txt"
-            if isFile(failedPath):
-                proxiesFailed = getProxies(proxiesPath=failedPath, removeFailedProxies=False)
-                proxies = listSubstract(proxies, proxiesFailed)
-        return proxies
-    return None
 
 def testIsHtmlOK():
     for currentPath in sortedGlob(getExecDirectory(__file__) + "/data-test/*.html"):
@@ -232,45 +196,7 @@ def testIsHtmlOK():
         text = fileToStr(currentPath)
         print(isHtmlOk(text))
 
-def proxyToDict(proxyStr, defaultType="http"):
-    theDict = {}
-    theTuple = proxyStr.split(":")
-    theDict["ip"] = theTuple[0]
-    theDict["port"] = theTuple[1]
-    theDict["user"] = None
-    theDict["password"] = None
-    if len(theTuple) > 2:
-        theDict["user"] = theTuple[2]
-        theDict["password"] = theTuple[3]
-    theDict["type"] = defaultType
-    return theDict
 
-def proxyToStr(proxyDict):
-    user = ""
-    if dictContains(proxyDict, "user"):
-        user += ":" + proxyDict["user"] + ":" + proxyDict["password"]
-    proxyStr = proxyDict["ip"] + ":" + proxyDict["port"] + user
-    return proxyStr
-
-def getProxiesProd():
-    return getProxies(dataDir() + proxiesDataSubDir + "/proxies-prod.txt")
-def getProxiesTest():
-    return getProxies(dataDir() + proxiesDataSubDir + "/proxies-test.txt")
-def getProxiesRenew():
-    return getProxies(dataDir() + proxiesDataSubDir + "/proxies-renew.txt")
-def getProxiesLinkedin():
-    return getProxies(dataDir() + proxiesDataSubDir + "/proxies-linkedin.txt")
-def getAllProxies(*args, **kwargs):
-    return getProxiesAll(*args, **kwargs)
-def getProxiesAll():
-    return getProxiesRenew() + getProxiesLinkedin()
-
-
-if __name__ == '__main__':
-#     testIsHtmlOK()
-#     proxies = getProxies(dataDir() + proxiesDataSubDir + "/proxies-renew.txt")
-    proxies = getProxiesRenew()
-    print(len(proxies))
 
 
 
