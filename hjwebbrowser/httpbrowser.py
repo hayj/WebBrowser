@@ -45,7 +45,8 @@ class HTTPBrowser():
         maxRetryWithoutProxy=0,
         maxRetryIfTimeout=1,
         maxRetryIf407=1,
-        maxRetryWithTor=1,
+        maxRetryWithTor=0,
+        retryWithTorIfBadStatus=True,
         portSet=["80", "55555"],
         retrySleep=1.0,
         defaultScore=None,
@@ -102,6 +103,7 @@ class HTTPBrowser():
         self.maxRetryIfTimeout = maxRetryIfTimeout
         self.maxRetryIf407 = maxRetryIf407
         self.maxRetryWithTor = maxRetryWithTor
+        self.retryWithTorIfBadStatus = retryWithTorIfBadStatus
         self.setProxy(proxy)
         self.initHeader()
 
@@ -412,7 +414,9 @@ class HTTPBrowser():
                 return returner(result)
         try:
             # We add the score to the history:
-            self.durationHistory.append(diffTime)
+            # TODO TESTER CA
+            if not isARetry:
+                self.durationHistory.append(diffTime)
             # Here we got a response, so we just get data:
             if response.history:
                 historyCount = 0
@@ -444,9 +448,25 @@ class HTTPBrowser():
                 result["status"] = REQUEST_STATUS.invalid
             else:
                 result["status"] = REQUEST_STATUS.success
+            # We retry with tor on bad status:
+            # TODO TESTER CA
+            if self.retryWithTorIfBadStatus and \
+            self.countRetryWithTor < self.maxRetryWithTor and \
+            result["status"] in \
+            [
+                REQUEST_STATUS.invalid,
+                REQUEST_STATUS.refused,
+                REQUEST_STATUS.duplicate,
+            ]:
+                self.countRetryWithTor += 1
+                randomSleep(self.retrySleep)
+                result = self.privateGet(url,
+                                         forcedPort=None,
+                                         noProxy=True,
+                                         isARetry=True,
+                                         useTor=True)
+                return returner(result)
             # And finally we return the result:
-#             if not "crawlingElement" in result:
-#                 print("WTFFFFFFFF2")
             return returner(result)
         except Exception as e:
             # If we can't acces to attribute, we just send the result with status exception:

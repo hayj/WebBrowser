@@ -82,7 +82,7 @@ This tool is not a wrapper over a real browser (from Selenium) but over requests
 
 	from hjwebbrowser.httpbrowser import *
 
-You can give retry counts : `maxRetryWithoutProxy`, `maxRetryIfTimeout`, `maxRetryIf407`.
+You can give retry counts : `maxRetryWithTor`, `maxRetryWithoutProxy`, `maxRetryIfTimeout`, `maxRetryIf407`.
 You can set different port for you proxy through `portSet`.
 
 Contrary to `Browser`, the `get` method return data. `html` is an alias to `get`. But you can give a `htmlCallback` too.

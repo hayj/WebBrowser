@@ -647,7 +647,7 @@ class Browser():
         # We construct data:
         data = \
         {
-            "proxy": self.getIp(),
+            "proxy": str(self.proxy),
             "crawlingElement": currentCrawlingElement,
             "url": str(currentCrawlingElement.data),
             "domain": self.urlParser.getDomain(currentCrawlingElement.data, urlLevel=URLLEVEL.SMART),
@@ -694,7 +694,7 @@ class Browser():
             if status == REQUEST_STATUS.duplicate:
                 logInfo("Title of the duplicated page: " + str(title), self)
         except Exception as e:
-            logError("Exception location: browser.html()\n" + str(e), self)
+            logException(e, self, location="browser.html()")
             data["status"] = REQUEST_STATUS.exception
         # Now if we have a callback, we have to throw the data:
         if self.htmlCallback is not None:
@@ -713,13 +713,10 @@ class Browser():
     def getUserAgent(self):
         return self.driver.execute_script("return navigator.userAgent")
 
-    def setProxy(self, ip, port=80, user=None, password=None, type="http"):
-        self.proxy = {}
-        self.proxy["ip"] = ip
-        self.proxy["port"] = port
-        self.proxy["user"] = user
-        self.proxy["password"] = password
-        self.proxy["type"] = type
+    def setProxy(self, proxy):
+        self.proxy = Proxy(proxy)
+        if self.driverType == DRIVER_TYPE.chrome or self.driverType == DRIVER_TYPE.phantomjs:
+            logWarning("Please recreate a Browser to set the proxy...")
 
 
 
