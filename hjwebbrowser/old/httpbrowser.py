@@ -4,7 +4,7 @@
 
 import requests
 import eventlet
-eventlet.monkey_patch(os=False, select=False, socket=True, thread=False, time=False, psycopg=True)
+eventlet.monkey_patch(socket=True)
 from datatools.url import *
 from urllib.request import urlopen
 from systemtools.basics import *
@@ -21,7 +21,6 @@ try:
 except: pass
 from bs4 import BeautifulSoup
 from threading import Thread, Lock, Semaphore, active_count, BoundedSemaphore
-from multiprocessing import Lock
 
 def htmlTitle(html):
     soup = BeautifulSoup(html, "html.parser")
@@ -30,14 +29,12 @@ def htmlTitle(html):
         title = strip(title.string)
     return title
 
-hbDomainDuplicateSingleton = None
-hbDomainDuplicateSingletonLock = Lock()
+httpBrowserDuplicates = None
 def getHTTPBrowserDomainDuplicateSingleton(*args, **kwargs):
-    global hbDomainDuplicateSingleton
-    with hbDomainDuplicateSingletonLock:
-        if hbDomainDuplicateSingleton is None:
-            hbDomainDuplicateSingleton = DomainDuplicate(*args, **kwargs)
-    return hbDomainDuplicateSingleton
+    global httpBrowserDuplicates
+    if httpBrowserDuplicates is None:
+        httpBrowserDuplicates = DomainDuplicate(*args, **kwargs)
+    return httpBrowserDuplicates
 
 class HTTPBrowser():
     urlParser = URLParser()
@@ -49,7 +46,7 @@ class HTTPBrowser():
         proxy=None,
         noRetry=False,
         maxRetryWithoutProxy=0,
-        maxRetryIfTimeout=0,
+        maxRetryIfTimeout=1,
         maxRetryIf407=1,
         maxRetryWithTor=0,
         retryWithTorIfBadStatus=True,
@@ -76,8 +73,6 @@ class HTTPBrowser():
         if "verbose" not in domainDuplicateParams:
             domainDuplicateParams["verbose"] = self.verbose
 
-        self.useTimeoutGet = useTimeoutGet
-
         # We set all retries:
         if noRetry:
             maxRetryWithoutProxy = 0
@@ -86,6 +81,9 @@ class HTTPBrowser():
             maxRetryWithTor = 0
 
         self.timeoutGetLock = Lock()
+        self.currentRequestResponse = None
+        self.currentRequestException = None
+        self.useTimeoutGet = useTimeoutGet
         self.isInvalidFunct = isInvalidFunct
         self.maxDuplicatePerDomain = maxDuplicatePerDomain
         self.duplicates = getHTTPBrowserDomainDuplicateSingleton(**domainDuplicateParams)
@@ -199,12 +197,32 @@ class HTTPBrowser():
 
     def timeoutGet(self, *args, **kwargs):
         """
-            Because sometimes requests does not respond and blocks the httpbrowser, we use eventlet.Timeout...
+            Because sometimes requests does not respond and blocks the httpbrowser,
+            we use a thread timeout...
         """
+#         with self.timeoutGetLock:
+        self.currentRequestResponse = None
+        self.currentRequestException = None
         if self.useTimeoutGet:
-            eventletTimeout = 1.3 * self.pageLoadTimeout
-            with eventlet.Timeout(eventletTimeout, requests.exceptions.Timeout("Eventlet timeout")):
-                return requests.get(*args, verify=self.requestsVerify, **kwargs)
+            def threadedGet(*args, **kwargs):
+                try:
+                    self.currentRequestResponse = requests.get(*args, verify=self.requestsVerify, **kwargs)
+                except Exception as e:
+                    self.currentRequestException = e
+            theThread = Thread(target=threadedGet, args=args, kwargs=kwargs)
+            a = str(getRandomInt(100))
+#             log(self.name + ": " + "starting request " + a, self)
+            theThread.start()
+            theThread.join(1.3 * self.pageLoadTimeout)
+#             log(self.name + ": " + "end of request " + a, self)
+            if theThread.isAlive():
+#                 try: theThread.exit()
+#                 except: pass
+                raise requests.exceptions.Timeout("The thread does not end.")
+            elif self.currentRequestException is not None:
+                raise self.currentRequestException
+            elif self.currentRequestResponse is not None:
+                return self.currentRequestResponse
         else:
             return requests.get(*args, verify=self.requestsVerify, **kwargs)
 
@@ -295,10 +313,10 @@ class HTTPBrowser():
                 #         log(r.content, self)
                 #     except:
                 #         logException(e, self)
-                # ttt = None
-                # if useTor:
-                #     ttt = TicToc(logger=self.logger)
-                #     ttt.tic()
+                ttt = None
+                if useTor:
+                    ttt = TicToc(logger=self.logger)
+                    ttt.tic()
                 response = self.timeoutGet \
                 (
                     url,
@@ -311,10 +329,10 @@ class HTTPBrowser():
                     headers=self.header,
 #                     cookies={'preview': '1'},
                 )
-                # if useTor:
-                #     totalDuration = ttt.toc("Request via Tor done.")
-                #     if totalDuration > 120:
-                #         logError("The tor request toke too much time...", self)
+                if useTor:
+                    totalDuration = ttt.toc("Request via Tor done.")
+                    if totalDuration > 120:
+                        logError("The tor request toke too much time...", self)
             else:
                 response = self.timeoutGet(url, timeout=self.pageLoadTimeout, headers=self.header,)
             # Now we retain the diff time:
@@ -341,7 +359,7 @@ class HTTPBrowser():
                 forcedPort = random.choice(ports)
             # We check if it is a timeout:
             isTimeout = False
-            if isinstance(ex, requests.exceptions.Timeout) or "Eventlet timeout" in str(ex):
+            if isinstance(ex, requests.exceptions.Timeout):
                 isTimeout = True
             # We write the error message:
             if isTimeout:

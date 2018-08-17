@@ -11,6 +11,7 @@ import socks
 import socket
 import sh
 from hjwebbrowser import config as wbConf
+from hjwebbrowser.proxy import *
 
 def torSingletonExists():
     global torSingleton
@@ -32,10 +33,16 @@ class Tor:
         Then you can call methods to get local proxies.
         A proxie is a dict with "ip", "port", "type"
         Or you can call restart which will refresh ips.
+
+        Warning: ports [0, 1024] are restricted to root https://unix.stackexchange.com/questions/16564/why-are-the-first-1024-ports-restricted-to-the-root-user-only
+        So we start at 1026
+
     """
-    def __init__(self, ports=None, portCount=None, startPort=1000,
+    def __init__(self, ports=None, portCount=None, startPort=1026,
                  logger=None, verbose=True, resetSleepTime=0.3,
-                 initSleepTime=0.5, initSleepTimeFactor=0.3, autoPorts=True):
+                 initSleepTime=0.5, initSleepTimeFactor=0.3, autoPorts=True,
+                 killAllTorrc=True):
+        self.killAllTorrc = killAllTorrc
         self.initSleepTimeFactor = initSleepTimeFactor
         self.resetSleepTime = resetSleepTime
         self.initSleepTime = initSleepTime
@@ -74,8 +81,10 @@ class Tor:
     def execBashFile(self, path):
         try:
             sh.bash(path)
+            return True
         except Exception as e:
             logException(e, self, location="execBashFile")
+            return False
 
     def restart(self):
         """
@@ -86,9 +95,12 @@ class Tor:
 
     def stop(self):
         log("Reseting tor services...", self)
-        killbillText = ""
-        for port in self.ports:
-            killbillText += "killbill torrc." + str(port) + '\n'
+        if self.killAllTorrc:
+            killbillText = "killbill torrc"
+        else:
+            killbillText = ""
+            for port in self.ports:
+                killbillText += "killbill torrc." + str(port) + '\n'
         script = \
         """
             cd """ + self.scriptsDir + """
@@ -99,7 +111,10 @@ class Tor:
         script = stripAllLines(script)
         scriptPath = self.scriptsDir + "/stop.sh"
         strToFile(script, scriptPath)
-        self.execBashFile(scriptPath)
+        if not self.execBashFile(scriptPath):
+            logWarning("We sleep on exception when killing tor...", self)
+            time.sleep(2)
+            self.execBashFile(scriptPath)
         time.sleep(self.resetSleepTime)
         log("Tor services reseted.", self)
 
@@ -155,7 +170,10 @@ class Tor:
         for port in self.ports:
             proxy = {"ip": "127.0.0.1", "port": str(port), "user": None,
                      "password": None, "type": "socks5"}
-            proxies.append(proxy)
+            # proxy = {"ip": "127.0.0.1", "port": str(port), "user": None,
+            #          "password": None, "type": "socks"}
+            proxyStr = proxy["ip"] + ":" + proxy["port"] + ":::" + proxy["type"]
+            proxies.append(Proxy(proxyStr, logger=self.logger, verbose=self.verbose))
         return proxies
 
     def getRandomProxy(self):
@@ -166,5 +184,18 @@ class Tor:
 
 
 if __name__ == '__main__':
-    Tor(portCount=1)#.stop()
+    # Tor(portCount=1)#.stop()
 
+    pass
+
+
+
+
+    # printLTS(b.html("https://api.ipify.org?format=json"))
+    # printLTS(b.html("https://api.ipify.org?format=json"))
+    # printLTS(b.html("https://api.ipify.org?format=json"))
+    # printLTS(b.html("https://www.ipify.org/"))
+    # printLTS(b.html("https://gist.github.com/jefftriplett/9748036"))
+    # printLTS(b.html("https://www.amazon.fr/gp/product/B00V6GEW42/ref=s9u_wish_gw_i1?ie=UTF8&colid=26L8BD9E4BRE1&coliid=I49IUUEKR3CZW&pd_rd_i=B00V6GEW42&pd_rd_r=b2605df7-a083-11e8-bea7-1bb11760a208&pd_rd_w=7bd9m&pd_rd_wg=zJV9h&pf_rd_m=A1X6FK5RDHNB96&pf_rd_s=&pf_rd_r=2ZFC54X88X2RRNTA3PXC&pf_rd_t=36701&pf_rd_p=b2aa2a3e-4691-4349-8b50-65f9675cdf61&pf_rd_i=desktop"))
+    # printLTS(b.html("https://www.lri.fr/index.php"))
+    # printLTS(b.html("https://www.adum.fr/index.pl?site=PSaclay"))
