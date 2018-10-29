@@ -2,9 +2,15 @@
 
 # pew in webcrawler-venv python ~/wm-dist-tmp/WebCrawler/webcrawler/httpbrowser.py
 
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+# warnings.filterwarnings("ignore", message="numpy.core.umath_tests is an internal NumPy")
 import requests
 import eventlet
 eventlet.monkey_patch(os=False, select=False, socket=True, thread=False, time=False, psycopg=True)
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from datatools.url import *
 from urllib.request import urlopen
 from systemtools.basics import *
@@ -66,10 +72,12 @@ class HTTPBrowser():
         isInvalidFunct=None,
         useTimeoutGet=True,
         requestsVerify=False,
+        displayTorWarning=True,
     ):
         self.logger = logger
         self.verbose = verbose
         self.requestsVerify = requestsVerify
+        self.displayTorWarning = displayTorWarning
 
         if "logger" not in domainDuplicateParams:
             domainDuplicateParams["logger"] = self.logger
@@ -234,7 +242,8 @@ class HTTPBrowser():
         # We set the proxy string:
         if useTor:
             proxy = getTorSingleton(logger=self.logger, verbose=self.verbose).getRandomProxy()
-            logWarning("We retry with Tor for " + url, self)
+            if self.displayTorWarning:
+                logWarning("We retry with Tor for " + url, self)
             proxyIpStr = proxy["ip"] + ":" + proxy["port"]
             theType = "http"
             if "type" in proxy:
@@ -469,7 +478,8 @@ class HTTPBrowser():
             ]:
                 self.countRetryWithTor += 1
                 randomSleep(self.retrySleep)
-                logWarning("Retrying with Tor because we got " + str(result["status"].name) + " for " + url, self)
+                if self.displayTorWarning:
+                    logWarning("Retrying with Tor because we got " + str(result["status"].name) + " for " + url, self)
                 result = self.privateGet(url,
                                          forcedPort=None,
                                          noProxy=True,
@@ -595,10 +605,10 @@ def test1():
 if __name__ == '__main__':
     from hjwebbrowser import config as wbConf
     wbConf.torPortCount = 5
-    proxies = getProxiesRenew()[0:20]
+    proxies = getAllProxies()[0:20]
     b = HTTPBrowser(proxy=random.choice(proxies), pageLoadTimeout=3, maxRetryWithTor=0)
 #     print(b.get("https://api.ipify.org?format=json")["html"])
-    print(b.get("https://fr.wikipedia.org/wiki/Vauxhall_Bridge")["html"])
+    print(b.get("https://fr.wikipedia.org/wiki/Vauxhall_Bridge")["html"][0:30])
 
 
 

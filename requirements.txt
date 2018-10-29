@@ -1,6 +1,5 @@
 selenium
 sh
-ipgetter
 psutil
 hjsystemtools
 html2text
@@ -8,3 +7,5 @@ requests
 beautifulsoup4
 requests[socks]
 pysocks
+eventlet
+ipython

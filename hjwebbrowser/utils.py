@@ -15,7 +15,7 @@ import sh
 import random
 import html2text
 import re
-import ipgetter
+from networktools import ipgetter
 from threading import Thread, Lock
 import math
 import numpy
