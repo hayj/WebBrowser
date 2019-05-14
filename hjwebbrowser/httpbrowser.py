@@ -7,10 +7,13 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 # warnings.filterwarnings("ignore", message="numpy.core.umath_tests is an internal NumPy")
 import requests
-import eventlet
-eventlet.monkey_patch(os=False, select=False, socket=True, thread=False, time=False, psycopg=True)
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+try:
+    import eventlet
+    eventlet.monkey_patch(os=False, select=False, socket=True, thread=False, time=False, psycopg=True)
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+except Exception as e:
+    print(e)
 from datatools.url import *
 from urllib.request import urlopen
 from systemtools.basics import *
