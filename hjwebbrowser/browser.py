@@ -259,6 +259,8 @@ class Browser():
                 raise Exception("Not yet implemented!")
             self.driver.set_page_load_timeout(self.pageLoadTimeout)
         except Exception as e:
+            if "Too many open files" in str(e) and "/tmp" in str(e):
+                clearRtmp(startsWith="tmp", olderHour=4, verbose=True)
             if retry:
                 time.sleep(2)
                 self.initSeleniumDriver(retry=False)
