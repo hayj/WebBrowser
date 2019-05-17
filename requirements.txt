@@ -1,7 +1,5 @@
 selenium
-sh
 psutil
-hjsystemtools
 html2text
 requests
 beautifulsoup4
