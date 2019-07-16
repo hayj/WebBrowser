@@ -828,6 +828,7 @@ class Browser():
             So the ip of the machine have to be whitlisted by your proxies provider
         """
         options = Options()
+        options.add_experimental_option('w3c', False)
         if self.proxy is not None and not self.headless:
             user = "null"
             password = "null"
