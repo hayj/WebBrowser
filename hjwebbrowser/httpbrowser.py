@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# pew in webcrawler-venv python ~/wm-dist-tmp/WebCrawler/webcrawler/httpbrowser.py
+# pew in st-venv python ~/wm-dist-tmp/WebCrawler/webcrawler/httpbrowser.py
 
 import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")

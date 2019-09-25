@@ -10,6 +10,8 @@ import requests.auth
 
 PROXY_DESC = Enum("PROXY_DESC", "ip port user password type")
 
+
+
 class Proxy:
     """
         See the unit test Python script to have more information
@@ -148,13 +150,61 @@ class Proxy:
         """
         return self.ip + ":" + self.port
 
-    def toScheme(self, hideUser=False):
+    def toScheme(self, hideUser=False, hideHTTP=False):
         result = ""
-        result += self.type + "://"
+        if not hideHTTP:
+            result += self.type + "://"
         if not hideUser and "user" in self:
             result += self.user + ":" + self.password + "@"
         result += self.ip + ":" + self.port
         return result
+
+    def works(self, *args, **kwargs):
+        return self.isWorking(*args, **kwargs)
+    def isWorking(self):
+        try:
+            proxy = self.toScheme(hideHTTP=True)
+            http_proxy  = "http://" + proxy
+            https_proxy = "https://" + proxy
+            ftp_proxy   = "ftp://" + proxy
+            proxyDict = { 
+                          "http"  : http_proxy, 
+                          "https" : https_proxy, 
+                          "ftp"   : ftp_proxy
+                        }
+            for url in \
+            [
+                "https://www.wikipedia.org/",
+                "https://www.python.org/",
+            ]:
+                r = requests.get\
+                (
+                    url,
+                    proxies=proxyDict,
+                    timeout=10,
+                )
+                if len(r.text) > 100:
+                    return True
+        except Exception as e:
+            logException(e, self)
+        return False
+
+def testProxies(proxies, logger=None):
+    def testProxy(proxies):
+        for p in proxies:
+            p.verbose = False
+            if p.works():
+                log(p, logger)
+            else:
+                log("FAIL " + str(p), logger)
+    proxiess = split(proxies, 20)
+    ts = []
+    for proxies in proxiess:
+        t = Thread(target=testProxy, args=(proxies,))
+        t.start()
+        ts.append(t)
+    for t in ts:
+        t.join()
 
 def getProxies\
 (
