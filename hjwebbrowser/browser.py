@@ -13,7 +13,10 @@ from systemtools.location import *
 from systemtools.system import *
 import selenium
 from selenium import webdriver
-import sh
+try:
+    import sh
+except Exception as e:
+    print(e)
 import random
 import html2text
 import re
@@ -35,6 +38,14 @@ from collections import OrderedDict
 import psutil
 from hjwebbrowser import config as wbConf
 
+
+
+def ipToSeed(ip):
+    try:
+        ip = ip.replace(".", "")
+        return int(ip)
+    except:
+        return strToInt(ip)
 
 def queueMean(queue, defaultValue=0.0):
     if queue is None:
@@ -157,9 +168,16 @@ class Browser():
                     disableNotifications=False,
                     noSandbox=None, # Default from the config
                     disableDevShmUsage=False, # Default from the config
+                    chromeExtensions=None,
                 ):
         self.logger = logger
         self.verbose = verbose
+
+        self.chromeExtensions = chromeExtensions
+        if self.chromeExtensions is None:
+            self.chromeExtensions = []
+        if isinstance(self.chromeExtensions, str):
+            self.chromeExtensions = [self.chromeExtensions]
 
         self.incognito = incognito
         self.disableNotifications = disableNotifications
@@ -311,8 +329,7 @@ class Browser():
             headers = dict(Browser.headers)
             headers = sortBy(headers, index=0)
             ip = self.proxy["ip"]
-            ip = ip.replace(".", "")
-            theSeed = int(ip)
+            theSeed = ipToSeed(ip)
             rd = Random()
             rd.setSeed(theSeed)
             for key, values in headers:
@@ -337,8 +354,7 @@ class Browser():
             return (getRandomInt(1100, 2000), getRandomInt(800, 1200))
         else:
             ip = self.proxy["ip"]
-            ip = ip.replace(".", "")
-            theSeed = int(ip)
+            theSeed = ipToSeed(ip)
             randomInts = getRandomInt(900, 1300, seed=theSeed, count=2)
             width = randomInts[0] + 600
             height = randomInts[1]
@@ -675,7 +691,7 @@ class Browser():
                 crawlingElement = tryUrlToCrawlingElement(crawlingElement)
                 ok = self.lastGetIsOk
             else:
-                logError("You can't be in both scenarios described in the doc.", self)
+                logError("You can't be in both scenarios described in the doc. Please use the html method instead.", self)
                 exit()
 
             # No we try to get some data:
@@ -829,6 +845,8 @@ class Browser():
             So the ip of the machine have to be whitlisted by your proxies provider
         """
         options = Options()
+        for ext in self.chromeExtensions:
+            options.add_extension(ext)
         options.add_experimental_option('w3c', False)
         if self.proxy is not None and not self.headless:
             user = "null"

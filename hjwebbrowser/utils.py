@@ -11,7 +11,10 @@ from systemtools.location import *
 from systemtools.system import *
 import selenium
 from selenium import webdriver
-import sh
+try:
+    import sh
+except Exception as e:
+    print(e)
 import random
 import html2text
 import re
